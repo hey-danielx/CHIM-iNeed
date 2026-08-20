@@ -1,0 +1,6 @@
+release/
+*.dwpkg
+*.tar
+*.tar.gz
+*.zip
+Thumbs.db
