@@ -2,8 +2,8 @@
 [CmdletBinding()]
 param(
     [string]$GitHubRepo,
-    [string]$PexPath = 'E:\Skyrim SE\wabbajack\MODs\mods\iNeed-CHIM patch\Scripts',
-    [string]$Mo2PatchPath = 'E:\Skyrim SE\wabbajack\MODs\mods\iNeed-CHIM patch'
+    [string]$PexPath,
+    [string]$Mo2PatchPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,9 +11,14 @@ Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$pluginRoot = Join-Path $repoRoot 'CHIM-iNeed'
+$pluginRoot = $repoRoot
+$skyrimPatchRoot = Join-Path $repoRoot 'SkyrimPatch'
 $releaseRoot = Join-Path $repoRoot 'release'
 $utf8 = New-Object System.Text.UTF8Encoding $false
+
+if ([string]::IsNullOrWhiteSpace($PexPath)) {
+    $PexPath = Join-Path $skyrimPatchRoot 'Scripts'
+}
 
 $manifest = Get-Content -LiteralPath (Join-Path $pluginRoot 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $pluginName = [string]$manifest.name
@@ -110,7 +115,7 @@ try {
     [System.IO.Directory]::CreateDirectory($pluginBundleOut) | Out-Null
 
     foreach ($name in $scriptNames) {
-        $psc = Join-Path $repoRoot "scripts\source\$name.psc"
+        $psc = Join-Path $skyrimPatchRoot "Scripts\Source\$name.psc"
         if (-not (Test-Path -LiteralPath $psc)) {
             throw "Missing Papyrus source $psc"
         }
@@ -123,7 +128,7 @@ try {
         Copy-Item -LiteralPath $pex -Destination (Join-Path $scriptsOut "$name.pex")
     }
 
-    Copy-Item -LiteralPath (Join-Path $repoRoot 'CHIM\ineed_actions.csv') -Destination (Join-Path $chimOut 'ineed_actions.csv')
+    Copy-Item -LiteralPath (Join-Path $skyrimPatchRoot 'CHIM\ineed_actions.csv') -Destination (Join-Path $chimOut 'ineed_actions.csv')
     Copy-Item -LiteralPath $dwpkgPath -Destination (Join-Path $pluginBundleOut "$version.dwpkg")
 
     $skyrimZip = Join-Path $releaseRoot 'iNeed-CHIM-Patch.zip'
@@ -155,7 +160,7 @@ Thumbs.db
         $mo2Chim = Join-Path $Mo2PatchPath 'CHIM'
         $mo2Bundle = Join-Path $mo2Chim "server-plugins\$pluginName"
         [System.IO.Directory]::CreateDirectory($mo2Bundle) | Out-Null
-        Copy-Item -LiteralPath (Join-Path $repoRoot 'CHIM\ineed_actions.csv') -Destination (Join-Path $mo2Chim 'ineed_actions.csv') -Force
+        Copy-Item -LiteralPath (Join-Path $skyrimPatchRoot 'CHIM\ineed_actions.csv') -Destination (Join-Path $mo2Chim 'ineed_actions.csv') -Force
         Copy-Item -LiteralPath $dwpkgPath -Destination (Join-Path $mo2Bundle "$version.dwpkg") -Force
     }
 

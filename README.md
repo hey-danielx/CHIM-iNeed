@@ -47,14 +47,21 @@ Output in `release/`:
 - `CHIM-iNeed/1.0.0.dwpkg` — bundled inside the Skyrim zip
 - `github-src/` — clean tree to push (plugin files at repo root, same layout as CHIM-Custom)
 
-The Skyrim zip also copies `ineed_actions.csv` and the `.dwpkg` into your MO2 mod `iNeed-CHIM patch`.
+Pass `-Mo2PatchPath` when building locally if you also want the generated `ineed_actions.csv` and `.dwpkg` copied into an existing MO2 mod folder:
+
+```powershell
+.\scripts\build-release.ps1 -Mo2PatchPath "E:\path\to\mods\iNeed-CHIM patch"
+```
 
 ## GitHub release
 
-1. Create a public repo named `CHIM-iNeed`.
-2. Push `release/github-src`.
-3. Create a release tagged `1.0.0` and attach `CHIM-iNeed.tar.gz`, `CHIM-iNeed.tar`, and `iNeed-CHIM-Patch.zip`.
-4. Asset names must match exactly. The installer looks for `CHIM-iNeed.tar.gz`.
+1. Update the version in `manifest.json` and `dwemer-package.json`, then push the change.
+2. Create and publish a GitHub release whose tag matches that version, such as `1.0.1`.
+3. The **Package release assets** workflow builds and attaches `CHIM-iNeed.tar.gz`, `CHIM-iNeed.tar`, and `iNeed-CHIM-Patch.zip` automatically.
+
+You can also run the workflow manually before publishing a release. The three packages will be available together as a workflow artifact for inspection.
+
+Asset names must match exactly. The installer looks for `CHIM-iNeed.tar.gz`.
 
 To appear in CHIM's built-in plugin list, submit a PR to AIAgent `ui/data/plugin_repository.json`. The bundled `.dwpkg` already installs the plugin when the player loads a save, so that PR is optional.
 

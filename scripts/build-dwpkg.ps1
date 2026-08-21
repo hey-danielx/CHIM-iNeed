@@ -10,7 +10,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$pluginRoot = Join-Path $repoRoot 'CHIM-iNeed'
+$pluginRoot = $repoRoot
 $legacyManifestPath = Join-Path $pluginRoot 'manifest.json'
 $packageTemplatePath = Join-Path $pluginRoot 'dwemer-package.json'
 
