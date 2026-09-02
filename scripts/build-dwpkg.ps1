@@ -10,7 +10,12 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$pluginRoot = Join-Path $repoRoot 'CHIM-iNeed'
+$nestedPlugin = Join-Path $repoRoot 'CHIM-iNeed'
+if (Test-Path -LiteralPath (Join-Path $nestedPlugin 'manifest.json')) {
+    $pluginRoot = $nestedPlugin
+} else {
+    $pluginRoot = $repoRoot
+}
 $legacyManifestPath = Join-Path $pluginRoot 'manifest.json'
 $packageTemplatePath = Join-Path $pluginRoot 'dwemer-package.json'
 
@@ -33,7 +38,7 @@ $serverStage = Join-Path $stageRoot 'server'
 try {
     [System.IO.Directory]::CreateDirectory($serverStage) | Out-Null
 
-    foreach ($file in @('context_pre.php', 'globals.php', 'index.php', 'manifest.json', 'README.md', 'dwemer-package.json')) {
+    foreach ($file in @('context_pre.php', 'globals.php', 'index.php', 'preprocessing.php', 'manifest.json', 'README.md', 'dwemer-package.json')) {
         $source = Join-Path $pluginRoot $file
         if (Test-Path -LiteralPath $source) {
             Copy-Item -LiteralPath $source -Destination (Join-Path $serverStage $file)

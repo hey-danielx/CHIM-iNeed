@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'inject_prompt' => isset($_POST['inject_prompt']),
         'allow_eat_action' => isset($_POST['allow_eat_action']),
         'allow_drink_action' => isset($_POST['allow_drink_action']),
+        'talk_mention_chance' => $_POST['talk_mention_chance'] ?? 40,
     ]);
     $message = 'Settings saved.';
 }
@@ -41,11 +42,13 @@ function chimINeedChecked($value): string
         button { background: #2f6fed; color: #fff; border: 0; border-radius: 6px; padding: 0.55rem 1rem; cursor: pointer; }
         .ok { color: #9fd89f; }
         code { background: #0d1116; padding: 0.1rem 0.35rem; border-radius: 4px; }
+        input[type=range] { width: 100%; }
+        .hint { color: #9aa7b3; font-size: 0.9rem; }
     </style>
 </head>
 <body>
     <h1>CHIM-iNeed</h1>
-    <p>NPC-only. iNeed sets a hunger/thirst marker on followers and can trigger a spoken comment. The player is human and roleplays their own needs.</p>
+    <p>NPC-only. iNeed keeps a sticky hunger/thirst marker on followers. The player is human and roleplays their own needs.</p>
     <?php if ($message !== ''): ?>
         <p class="ok"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
@@ -57,6 +60,11 @@ function chimINeedChecked($value): string
         <label>
             <input type="checkbox" name="inject_prompt" value="1" <?php echo chimINeedChecked($settings['inject_prompt']); ?>>
             Inject hunger/thirst instructions into CHIM prompts
+        </label>
+        <label>
+            Player-talk mention chance: <strong id="chanceLabel"><?php echo (int) $settings['talk_mention_chance']; ?></strong>%
+            <input type="range" name="talk_mention_chance" id="talkChance" min="0" max="100" step="5" value="<?php echo (int) $settings['talk_mention_chance']; ?>">
+            <span class="hint">When you start a conversation with a hungry or thirsty follower, this is the chance they bring it up in that reply. 0 = never on talk, 100 = always. Bored idle comments are separate and keep firing while they still have no food or water.</span>
         </label>
         <label>
             <input type="checkbox" name="allow_eat_action" value="1" <?php echo chimINeedChecked($settings['allow_eat_action']); ?>>
@@ -72,8 +80,14 @@ function chimINeedChecked($value): string
     </form>
     <div class="card" style="margin-top:1rem;">
         <h2>Game side</h2>
-        <p>The Papyrus bridge in iNeed sends a CHIM <code>infoaction</code> plus a <code>chat</code> request when a follower becomes hungry or thirsty. Follower Needs must be enabled in iNeed.</p>
+        <p>When a follower first runs out of food or water, Papyrus sends a CHIM marker plus one spoken line. That need stays on their actor profile until they eat or drink.</p>
+        <p>If you talk to them later, the mention chance above can make them bring it up. If they stay quiet, iNeed can also fire a CHIM <code>bored</code> idle about that need about once per game hour while the faction is still set.</p>
         <p>Optional actions <code>Eat_Food</code> and <code>Drink_Water</code> are shipped as <code>CHIM/ineed_actions.csv</code>.</p>
     </div>
+    <script>
+        const slider = document.getElementById('talkChance');
+        const label = document.getElementById('chanceLabel');
+        slider.addEventListener('input', function () { label.textContent = slider.value; });
+    </script>
 </body>
 </html>

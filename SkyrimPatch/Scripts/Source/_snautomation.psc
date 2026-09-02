@@ -100,6 +100,8 @@ Function FollowerEats()
 	Else
 		If !AlreadyHungry
 			_SNChimBridge.NotifyFollowerNeed(_SNQuest, targ, FollowerName, "hungry", true)
+		ElseIf CombatState == 0
+			_SNChimBridge.TriggerNeedBoredComment(_SNQuest, targ, FollowerName, "hungry", true)
 		EndIf
 		targ.AddToFaction(_SNHungryFaction)
 		Debug.Notification(FollowerName + _SNQuest.FollowerNFoodText)
@@ -143,6 +145,8 @@ Function FollowerDrinks()
 		Else
 			If !AlreadyThirsty
 				_SNChimBridge.NotifyFollowerNeed(_SNQuest, targ, FollowerName, "thirsty", true)
+			ElseIf CombatState == 0
+				_SNChimBridge.TriggerNeedBoredComment(_SNQuest, targ, FollowerName, "thirsty", true)
 			EndIf
 			targ.AddToFaction(_SNThirstyFaction)
 			Debug.Notification(FollowerName + _SNQuest.FollowerNWaterText)

@@ -352,6 +352,7 @@ Bool Property Restore Auto
 Bool Property EnableActionsSpell Auto
 Bool Property ChimCommentsEnabled = True Auto
 Float Property ChimCommentCooldownHours = 2.0 Auto
+Float Property ChimBoredRepeatGameHours = 1.0 Auto
 String[] Property ChimNeedCommentKeys Auto
 Float[] Property ChimNeedCommentTimes Auto
 Bool Property iNeedDDInstalled Auto
@@ -1864,8 +1865,8 @@ EndFunction
 
 Function EnsureChimNeedCommentStorage()
 	If !ChimNeedCommentKeys
-		ChimNeedCommentKeys = New String[16]
-		ChimNeedCommentTimes = New Float[16]
+		ChimNeedCommentKeys = New String[32]
+		ChimNeedCommentTimes = New Float[32]
 	EndIf
 EndFunction
 
@@ -1919,6 +1920,74 @@ Function ChimMarkNeedComment(String asActorName, String asNeed)
 	EndIf
 	ChimNeedCommentKeys[Slot] = KeyName
 	ChimNeedCommentTimes[Slot] = Now
+EndFunction
+
+Bool Function ChimCooldownReady(String asKeyName, Float afCooldownHours)
+	If asKeyName == ""
+		Return False
+	EndIf
+	EnsureChimNeedCommentStorage()
+	Float Now = Utility.GetCurrentGameTime()
+	Int i = 0
+	While i < ChimNeedCommentKeys.Length
+		If ChimNeedCommentKeys[i] == asKeyName
+			If ((Now - ChimNeedCommentTimes[i]) * 24.0) < afCooldownHours
+				Return False
+			EndIf
+			Return True
+		EndIf
+		i += 1
+	EndWhile
+	Return True
+EndFunction
+
+Function ChimMarkCooldown(String asKeyName)
+	If asKeyName == ""
+		Return
+	EndIf
+	EnsureChimNeedCommentStorage()
+	Float Now = Utility.GetCurrentGameTime()
+	Int i = 0
+	Int EmptySlot = -1
+	Int Oldest = 0
+	Float OldestTime = ChimNeedCommentTimes[0]
+	While i < ChimNeedCommentKeys.Length
+		If ChimNeedCommentKeys[i] == asKeyName
+			ChimNeedCommentTimes[i] = Now
+			Return
+		ElseIf ChimNeedCommentKeys[i] == "" && EmptySlot < 0
+			EmptySlot = i
+		EndIf
+		If ChimNeedCommentTimes[i] < OldestTime
+			OldestTime = ChimNeedCommentTimes[i]
+			Oldest = i
+		EndIf
+		i += 1
+	EndWhile
+	Int Slot = EmptySlot
+	If Slot < 0
+		Slot = Oldest
+	EndIf
+	ChimNeedCommentKeys[Slot] = asKeyName
+	ChimNeedCommentTimes[Slot] = Now
+EndFunction
+
+Bool Function ChimBoredRepeatReady(String asActorName, String asNeed)
+	If !ChimCommentsEnabled || asActorName == "" || asNeed == ""
+		Return False
+	EndIf
+	Float Hours = ChimBoredRepeatGameHours
+	If Hours <= 0.0
+		Hours = 1.0
+	EndIf
+	Return ChimCooldownReady("bored|" + asActorName + "|" + asNeed, Hours)
+EndFunction
+
+Function ChimMarkBoredRepeat(String asActorName, String asNeed)
+	If asActorName == "" || asNeed == ""
+		Return
+	EndIf
+	ChimMarkCooldown("bored|" + asActorName + "|" + asNeed)
 EndFunction
 
 Function RegisterChimEvents()

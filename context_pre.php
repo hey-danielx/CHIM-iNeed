@@ -6,17 +6,17 @@ if (!chimINeedIsEnabled()) {
     return;
 }
 
-$instructions = chimINeedPromptInstructions();
-if ($instructions === '') {
+$turn = chimINeedTurnInstruction();
+if ($turn === '') {
     return;
 }
 
 if (function_exists('chimRegisterPromptInjection')) {
-    chimRegisterPromptInjection('prompt_bottom', 'chim_ineed.needs_instructions', $instructions, 80);
+    chimRegisterPromptInjection('prompt_bottom', 'chim_ineed.turn_instruction', $turn, 70);
     return;
 }
 
 if (!isset($GLOBALS['HERIKA_PERS'])) {
     $GLOBALS['HERIKA_PERS'] = '';
 }
-$GLOBALS['HERIKA_PERS'] .= "\n" . $instructions;
+$GLOBALS['HERIKA_PERS'] .= "\n" . $turn;

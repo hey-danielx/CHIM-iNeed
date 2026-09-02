@@ -2,8 +2,8 @@
 [CmdletBinding()]
 param(
     [string]$GitHubRepo,
-    [string]$PexPath = 'E:\Skyrim SE\wabbajack\MODs\mods\iNeed-CHIM patch\Scripts',
-    [string]$Mo2PatchPath = 'E:\Skyrim SE\wabbajack\MODs\mods\iNeed-CHIM patch'
+    [string]$PexPath,
+    [string]$Mo2PatchPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,9 +11,40 @@ Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$pluginRoot = Join-Path $repoRoot 'CHIM-iNeed'
+$nestedPlugin = Join-Path $repoRoot 'CHIM-iNeed'
+if (Test-Path -LiteralPath (Join-Path $nestedPlugin 'manifest.json')) {
+    $pluginRoot = $nestedPlugin
+} else {
+    $pluginRoot = $repoRoot
+}
+$skyrimPatchRoot = Join-Path $repoRoot 'SkyrimPatch'
+$pscRoot = Join-Path $skyrimPatchRoot 'Scripts\Source'
+if (-not (Test-Path -LiteralPath $pscRoot)) {
+    $pscRoot = Join-Path $repoRoot 'scripts\source'
+}
+$csvPath = Join-Path $skyrimPatchRoot 'CHIM\ineed_actions.csv'
+if (-not (Test-Path -LiteralPath $csvPath)) {
+    $csvPath = Join-Path $repoRoot 'CHIM\ineed_actions.csv'
+}
 $releaseRoot = Join-Path $repoRoot 'release'
 $utf8 = New-Object System.Text.UTF8Encoding $false
+$localMo2 = 'E:\Skyrim SE\wabbajack\MODs\mods\iNeed-CHIM patch'
+
+if ([string]::IsNullOrWhiteSpace($PexPath)) {
+    $fromPatch = Join-Path $skyrimPatchRoot 'Scripts'
+    $fromMo2 = Join-Path $localMo2 'Scripts'
+    if (Test-Path -LiteralPath (Join-Path $fromPatch '_snquestscript.pex')) {
+        $PexPath = $fromPatch
+    } elseif (Test-Path -LiteralPath $fromMo2) {
+        $PexPath = $fromMo2
+    } else {
+        $PexPath = $fromPatch
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($Mo2PatchPath) -and -not $env:GITHUB_ACTIONS -and (Test-Path -LiteralPath $localMo2)) {
+    $Mo2PatchPath = $localMo2
+}
 
 $manifest = Get-Content -LiteralPath (Join-Path $pluginRoot 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $pluginName = [string]$manifest.name
@@ -39,7 +70,7 @@ function Copy-PluginFiles {
     param([string]$Destination)
 
     [System.IO.Directory]::CreateDirectory($Destination) | Out-Null
-    foreach ($file in @('context_pre.php', 'globals.php', 'index.php', 'manifest.json', 'README.md', 'dwemer-package.json')) {
+    foreach ($file in @('context_pre.php', 'globals.php', 'index.php', 'preprocessing.php', 'manifest.json', 'README.md', 'dwemer-package.json')) {
         $source = Join-Path $pluginRoot $file
         if (Test-Path -LiteralPath $source) {
             Copy-Item -LiteralPath $source -Destination (Join-Path $Destination $file)
@@ -110,7 +141,7 @@ try {
     [System.IO.Directory]::CreateDirectory($pluginBundleOut) | Out-Null
 
     foreach ($name in $scriptNames) {
-        $psc = Join-Path $repoRoot "scripts\source\$name.psc"
+        $psc = Join-Path $pscRoot "$name.psc"
         if (-not (Test-Path -LiteralPath $psc)) {
             throw "Missing Papyrus source $psc"
         }
@@ -123,7 +154,7 @@ try {
         Copy-Item -LiteralPath $pex -Destination (Join-Path $scriptsOut "$name.pex")
     }
 
-    Copy-Item -LiteralPath (Join-Path $repoRoot 'CHIM\ineed_actions.csv') -Destination (Join-Path $chimOut 'ineed_actions.csv')
+    Copy-Item -LiteralPath $csvPath -Destination (Join-Path $chimOut 'ineed_actions.csv')
     Copy-Item -LiteralPath $dwpkgPath -Destination (Join-Path $pluginBundleOut "$version.dwpkg")
 
     $skyrimZip = Join-Path $releaseRoot 'iNeed-CHIM-Patch.zip'
@@ -140,6 +171,12 @@ try {
     $skyrimPatchSrc = Join-Path $githubStage 'SkyrimPatch'
     Copy-Item -LiteralPath $skyrimStage -Destination $skyrimPatchSrc -Recurse
     Copy-Item -LiteralPath (Join-Path $repoRoot 'README.md') -Destination (Join-Path $githubStage 'README.md') -Force
+    $workflowSrc = Join-Path $repoRoot '.github\workflows\package-release.yml'
+    if (Test-Path -LiteralPath $workflowSrc) {
+        $workflowDest = Join-Path $githubStage '.github\workflows'
+        [System.IO.Directory]::CreateDirectory($workflowDest) | Out-Null
+        Copy-Item -LiteralPath $workflowSrc -Destination (Join-Path $workflowDest 'package-release.yml')
+    }
 
     $ignore = @"
 release/
@@ -155,7 +192,7 @@ Thumbs.db
         $mo2Chim = Join-Path $Mo2PatchPath 'CHIM'
         $mo2Bundle = Join-Path $mo2Chim "server-plugins\$pluginName"
         [System.IO.Directory]::CreateDirectory($mo2Bundle) | Out-Null
-        Copy-Item -LiteralPath (Join-Path $repoRoot 'CHIM\ineed_actions.csv') -Destination (Join-Path $mo2Chim 'ineed_actions.csv') -Force
+        Copy-Item -LiteralPath $csvPath -Destination (Join-Path $mo2Chim 'ineed_actions.csv') -Force
         Copy-Item -LiteralPath $dwpkgPath -Destination (Join-Path $mo2Bundle "$version.dwpkg") -Force
     }
 

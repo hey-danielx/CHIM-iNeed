@@ -1,7 +1,7 @@
 {
     "schema_version": 4,
     "name": "CHIM-iNeed",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Lets CHIM followers comment when iNeed reports they are hungry or thirsty.",
     "server": {
         "mutable_paths": []
