@@ -64,3 +64,11 @@ To appear in CHIM's built-in plugin list, submit a PR to AIAgent `ui/data/plugin
 ## Requirements
 
 iNeed, SKSE, CHIM (`AIAgent.esp`).
+
+## NPC plugin data
+
+On servers with [HerikaServer #96](https://github.com/Dwemer-Dynamics/HerikaServer/pull/96), accepted state changes also copy persisted state into `core_npc_master.plugin_extended_data.chim_ineed` through `NpcMaster::setPluginData`. The object contains `actor_name`, `state`, and UTC `updated_at`; consumers can read it with `getPluginData($npcId, 'chim_ineed')`. Other namespaces are preserved and these writes do not create NPC history.
+
+Only an exact, unique existing NPC name is used because current events do not carry FormIDs. Unknown or ambiguous NPCs retain their state in the existing plugin table and are retried on the next state change. Existing rows are retained; there is no bulk backfill or profile creation. Global settings stay in their current table.
+
+The existing table remains the live prompt/state cache. Ordinary NPC snapshots include the copied data; history rollback does not rewind the live cache, and subsequent events refresh the NPC copy. Older servers without the API or migrated column keep their existing behavior. Optional copy failures log a warning without interrupting live state. No client change or extension migration is required.
