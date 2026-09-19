@@ -14,6 +14,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to attach assets to, such as 1.0.2. Leave empty to only build."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -36,8 +41,9 @@ jobs:
           if ([string]$package.version -ne [string]$manifest.version) {
             throw "dwemer-package.json version $($package.version) does not match manifest version $($manifest.version)."
           }
-          if ('${{ github.event_name }}' -eq 'release') {
-            $tagVersion = '${{ github.event.release.tag_name }}'.TrimStart('v')
+          $tagName = '${{ github.event.release.tag_name || inputs.release_tag }}'.Trim()
+          if ($tagName) {
+            $tagVersion = $tagName.TrimStart('v')
             if ($tagVersion -ne [string]$manifest.version) {
               throw "Release tag $tagVersion does not match manifest version $($manifest.version)."
             }
@@ -72,7 +78,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     needs: package
     runs-on: ubuntu-latest
     permissions:
@@ -89,7 +95,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload '${{ github.event.release.tag_name }}' \
+          gh release upload '${{ github.event.release.tag_name || inputs.release_tag }}' \
             release-assets/CHIM-iNeed.tar.gz \
             release-assets/CHIM-iNeed.tar \
             release-assets/iNeed-CHIM-Patch.zip \

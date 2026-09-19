@@ -84,6 +84,37 @@ function Copy-PluginFiles {
     }
 }
 
+function Invoke-TarArchive {
+    param(
+        [Parameter(Mandatory)][string]$ArchivePath,
+        [Parameter(Mandatory)][string]$ChangeDir,
+        [Parameter(Mandatory)][string]$SourceName,
+        [Parameter(Mandatory)][string[]]$Flags
+    )
+
+    # Prefer Windows bsdtar. Git's GNU tar is often first on GitHub Actions PATH
+    # and treats a drive letter in the archive path as host:file.
+    $tarCmd = Join-Path $env:SystemRoot 'System32\tar.exe'
+    if (-not (Test-Path -LiteralPath $tarCmd)) {
+        $tarCmd = 'tar'
+    }
+
+    $archiveDir = Split-Path -Parent $ArchivePath
+    $archiveName = Split-Path -Leaf $ArchivePath
+    [System.IO.Directory]::CreateDirectory($archiveDir) | Out-Null
+
+    Push-Location -LiteralPath $archiveDir
+    try {
+        & $tarCmd @Flags $archiveName -C $ChangeDir $SourceName
+        if ($LASTEXITCODE -ne 0) {
+            throw "tar failed while creating $ArchivePath (exit $LASTEXITCODE)"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function New-ZipFromDirectory {
     param(
         [string]$SourceDirectory,
@@ -123,14 +154,8 @@ try {
             Remove-Item -LiteralPath $archive -Force
         }
     }
-    & tar -cf $tar -C $tarStage $pluginName
-    if ($LASTEXITCODE -ne 0) {
-        throw "tar failed while creating $tar"
-    }
-    & tar -czf $tarGz -C $tarStage $pluginName
-    if ($LASTEXITCODE -ne 0) {
-        throw "tar failed while creating $tarGz"
-    }
+    Invoke-TarArchive -ArchivePath $tar -ChangeDir $tarStage -SourceName $pluginName -Flags @('-cf')
+    Invoke-TarArchive -ArchivePath $tarGz -ChangeDir $tarStage -SourceName $pluginName -Flags @('-czf')
 
     [System.IO.Directory]::CreateDirectory($skyrimStage) | Out-Null
     $scriptsOut = Join-Path $skyrimStage 'Scripts'

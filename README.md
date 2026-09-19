@@ -52,7 +52,7 @@ Output in `release/`:
 ## GitHub release
 
 1. Update the version in `manifest.json` and `dwemer-package.json`, then push the change.
-2. Create and publish a GitHub release whose tag matches that version, such as `1.0.1`.
+2. Create and publish a GitHub release whose tag matches that version, such as `1.0.2`.
 3. The **Package release assets** workflow builds and attaches `CHIM-iNeed.tar.gz`, `CHIM-iNeed.tar`, and `iNeed-CHIM-Patch.zip` automatically.
 
 You can also run the workflow manually before publishing a release. The three packages will be available together as a workflow artifact for inspection.

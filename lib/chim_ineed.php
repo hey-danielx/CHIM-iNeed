@@ -198,14 +198,20 @@ function chimINeedStoreNpcPluginState(string $actorName): void
                 $supported = !empty($column['supported']);
             }
         }
-        if (!$supported) return;
+        if (!$supported) {
+            return;
+        }
         // Events carry names, not FormIDs. Never choose between ambiguous profiles.
         $match = $db->fetchOne("SELECT min(id) AS id, count(*) AS matches FROM
             (SELECT id FROM core_npc_master WHERE npc_name = $1 LIMIT 2) candidates", [$actorName]);
-        if ((int) ($match['matches'] ?? 0) !== 1) return;
+        if ((int) ($match['matches'] ?? 0) !== 1) {
+            return;
+        }
         $row = $db->fetchOne("SELECT to_jsonb(state) - 'actor_name' - 'updated_at' AS data
             FROM plugins.chim_ineed_actor_state state WHERE actor_name = $1", [$actorName]);
-        if (empty($row['data'])) return;
+        if (empty($row['data'])) {
+            return;
+        }
         $state = json_decode($row['data'], true, 512, JSON_THROW_ON_ERROR);
 
         if (!(new NpcMaster())->setPluginData((int) $match['id'], 'chim_ineed', [
